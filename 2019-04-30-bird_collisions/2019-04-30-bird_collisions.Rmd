@@ -28,7 +28,7 @@ mp_birds <- bird_collisions %>%
   full_join(., mp_light, by = "date") %>% 
   # take out any NAs
   drop_na() %>% 
-  # extract year and month
+  # extract year and month and get month in working order
   mutate(year = year(date),
          month_num = month(date),
          month = month.name[month_num],
