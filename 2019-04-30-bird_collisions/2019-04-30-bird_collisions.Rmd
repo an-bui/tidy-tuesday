@@ -9,13 +9,59 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r libraries}
 library(tidyverse)
 library(here)
+library(lubridate)
 ```
 
-```{r}
+```{r data}
 bird_collisions <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-04-30/bird_collisions.csv")
 mp_light <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-04-30/mp_light.csv")
 ```
+
+```{r wrangle}
+mp_birds <- bird_collisions %>% 
+  # filter for McCormick Park
+  filter(locality == "MP") %>% 
+  # join light scores with bird collisions
+  full_join(., mp_light, by = "date") %>% 
+  # take out any NAs
+  drop_na() %>% 
+  # extract year and month
+  mutate(year = year(date),
+         month_num = month(date),
+         month = month.name[month_num],
+         month = fct_relevel(month, month.name)) %>% 
+  # join genus and species column by _
+  unite("sciname", genus, species, sep = "_") %>% 
+  # select desired columns
+  select(date, year, month, sciname, family, habitat, light_score)
+```
+
+```{r visualize}
+#### what's the frequency of collisions by month? ####
+# wrangle
+freq <- mp_birds %>% 
+  group_by(year, month) %>% 
+  tally()
+
+# plot
+ggplot(freq, aes(x = year,
+                 y = n,
+                 fill = month)) +
+  geom_col()
+
+#### as light score increases, do collisions increase? ####
+ggplot(mp_birds, aes(x = light_score)) +
+  geom_histogram(binwidth = 1, aes(fill = month))
+
+#### does number of collisions vary by family over time? ####
+ggplot(mp_birds, aes(x = year)) +
+  geom_freqpoly(aes(color = family))
+
+```
+
+
+
 
