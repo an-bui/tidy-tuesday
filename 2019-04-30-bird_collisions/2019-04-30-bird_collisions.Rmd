@@ -115,7 +115,7 @@ new_df <- mp_birds %>%
   filter(family %in% most_col)
 
 hab_fam <- ggplot(new_df, aes(x = family,
-                   y = habitat)) +
+                              y = habitat)) +
   geom_point(aes(size = collisions,
                  color = light)) +
   scale_color_viridis() +
@@ -123,7 +123,11 @@ hab_fam <- ggplot(new_df, aes(x = family,
   theme_classic() + 
   theme(legend.position = "none") +
   geom_text(aes(label = collisions),
-            color = "white")
+            color = "white") +
+  labs(x = "Family",
+       y = "Habitat type", 
+       title = "Bird collisions within family by habitat",
+       caption = "Data from Winger et al. (doi:10.5061/dryad.8rr0498). Size of points represents magnitude of collisions. Colors represent light score, with yellow being the highest score and purple the lowest.")
 ggsave(here::here("2019-04-30-bird_collisions", "hab_fam.jpeg"), hab_fam, dpi = 400)
 ```
 
