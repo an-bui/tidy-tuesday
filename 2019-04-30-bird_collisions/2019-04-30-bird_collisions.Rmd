@@ -13,6 +13,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(here)
 library(lubridate)
+library(ggrepel)
+library(viridis)
 ```
 
 ```{r data}
@@ -36,7 +38,7 @@ mp_birds <- bird_collisions %>%
   # join genus and species column by _
   unite("sciname", genus, species, sep = "_") %>% 
   # select desired columns
-  select(date, year, month, sciname, family, habitat, light_score)
+  select(date, year, month, sciname, family, habitat, light_score, stratum)
 ```
 
 ```{r visualize}
@@ -47,9 +49,8 @@ freq <- mp_birds %>%
   tally()
 
 # plot
-ggplot(freq, aes(x = year,
-                 y = n,
-                 fill = month)) +
+ggplot(freq, aes(x = month,
+                 y = n)) +
   geom_col()
 
 #### as light score increases, do collisions increase? ####
@@ -58,8 +59,72 @@ ggplot(mp_birds, aes(x = light_score)) +
 
 #### does number of collisions vary by family over time? ####
 ggplot(mp_birds, aes(x = year)) +
-  geom_freqpoly(aes(color = family))
+  geom_freqpoly(aes(color = family), binwidth = 1)
 
+#### how do collisions vary with habitat? ####
+# wrangle
+habitat <- mp_birds %>% 
+  group_by(habitat, family) %>% 
+  tally()
+
+# plot
+ggplot(habitat, aes(x = habitat,
+                    y = n)) +
+  geom_col(aes(fill = family))
+
+#### how do collisions vary with stratum? ####
+# wrangle
+stratum <- mp_birds %>% 
+  group_by(stratum, family) %>% 
+  tally() %>% 
+  arrange(-n)
+
+ggplot(stratum, aes(x = stratum,
+                    y = n)) +
+  geom_col(aes(fill = family))
+
+#### within collisions, what is the most common stratum and habitat? ####
+sh_df <- mp_birds %>% 
+  group_by(stratum, habitat) %>% 
+  tally()
+
+ggplot(sh_df, aes(x = habitat,
+                     y = stratum)) +
+  geom_tile(aes(fill = n))
+
+#### which families prefer lower stratum in edge habitats? ####
+prefs <- mp_birds %>% 
+  filter(stratum == "Lower" & habitat == "Edge")
+
+prefs_v <- unique(prefs$family)
+
+#### what families of birds experience the most collisions? ####
+most_col <- mp_birds %>% 
+  group_by(family) %>% 
+  summarize(collisions = length(family)) %>% 
+  arrange(-collisions) %>% 
+  head(5) %>% 
+  pull(family)
+
+#### habitat by family with size by number of incidents and color being light level ####
+new_df <- mp_birds %>% 
+  group_by(family, habitat) %>%
+  summarize(collisions = length(family),
+            light = mean(light_score)) %>% 
+  arrange(-collisions) %>% 
+  filter(family %in% most_col)
+
+hab_fam <- ggplot(new_df, aes(x = family,
+                   y = habitat)) +
+  geom_point(aes(size = collisions,
+                 color = light)) +
+  scale_color_viridis() +
+  scale_size_continuous(range = c(10, 90)) +
+  theme_classic() + 
+  theme(legend.position = "none") +
+  geom_text(aes(label = collisions),
+            color = "white")
+ggsave(here::here("2019-04-30-bird_collisions", "hab_fam.jpeg"), hab_fam, dpi = 400)
 ```
 
 
