@@ -1,0 +1,87 @@
+---
+title: "2019-05-07-teacher_student"
+author: "An Bui"
+date: "5/7/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(tidyverse)
+library(ggridges)
+library(beyonce)
+
+st_ratio <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-05-07/student_teacher_ratio.csv") %>% 
+  select(indicator, country, year, student_ratio)
+```
+
+```{r}
+av_df <- st_ratio %>% 
+  # filter for Primary Education only
+  filter(indicator == "Primary Education") %>% 
+  # group by country
+  group_by(country) %>% 
+  # drop NAs
+  drop_na(student_ratio) %>% 
+  # find average student:teacher ratio across years
+  summarize(av = mean(student_ratio)) %>% 
+  # arrange in descending order
+  arrange(-av)
+
+# most crowded
+crowded <- av_df %>% 
+  head(10) %>% 
+  pull(country)
+
+# least crowded
+uncrowded <- av_df %>% 
+  tail(10) %>% 
+  pull(country)
+
+# filter original df for these countries and add in capacity
+crowded_countries <- st_ratio %>% 
+  filter(indicator == "Primary Education" &
+           country %in% crowded) %>% 
+  mutate(capacity = "Most crowded")
+
+uncrowded_countries <- st_ratio %>% 
+  filter(indicator == "Primary Education" &
+           country %in% uncrowded) %>% 
+  mutate(capacity = "Least crowded")
+
+combined <- bind_rows(crowded_countries, uncrowded_countries) %>% 
+  mutate(capacity = fct_relevel(capacity, c("Most crowded", "Least crowded")),
+         year = as_factor(year))
+  
+# wrap labels
+combined$country = str_wrap(combined$country, width = 15)
+```
+
+```{r}
+ggplot(combined, aes(x = reorder(country, -student_ratio), 
+                     y = student_ratio)) +
+  geom_point(aes(color = year),
+             size = 4,
+             alpha = 0.9) +
+  facet_wrap(~capacity, scales = "free") +
+  scale_color_manual(values = beyonce_palette(35)) +
+    theme(plot.background = element_rect(fill = "#daeddb"),
+        panel.background = element_rect(fill = "#daeddb"),
+        panel.grid = element_line(color = "#ffffff"),
+        legend.background = element_rect(color = "#ffffff"),
+        strip.background = element_rect(color = "#afafaf", fill = "#ffffff", size = 1),
+        axis.text = element_text(size = 10),
+        axis.title = element_text(size = 14),
+        axis.text.x = element_text(angle = 60, hjust = 1)) +
+  labs(title = "Student-teacher ratios",
+       subtitle = "A comparison of countries with the most crowded and least crowded classrooms on average", 
+       x = "Country", 
+       y = "Student:teacher ratio",
+       color = "Year")
+```
+
+

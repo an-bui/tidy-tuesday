@@ -1,0 +1,60 @@
+---
+title: "Ramen ratings"
+author: "An Bui"
+date: "6/4/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries}
+library(tidyverse)
+library(ggimage)
+library(here)
+```
+
+```{r data}
+ramen_ratings <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-06-04/ramen_ratings.csv")
+```
+
+```{r}
+#### which 10 countries produce the most ramen? ####
+most <- ramen_ratings %>% 
+  group_by(country) %>% 
+  tally() %>% 
+  arrange(-n) %>% 
+  head(5) %>% 
+  pull(country)
+
+#### which country produces the best ramen? ####
+best <- ramen_ratings %>% 
+  filter(country %in% most) %>% 
+  drop_na %>% 
+  group_by(country) %>% 
+  summarize(mean = mean(stars),
+            med = median(stars)) %>% 
+  arrange(-med)
+
+ramen <- sample("C:/Users/An/github/tidy-tuesday/2019-06-04-ramen-ratings/misoramentop-1.png", size = 3163, replace = TRUE)
+
+ramen2 <- "misoramentop-1.png"
+
+best_df <- ramen_ratings %>% 
+  drop_na() %>% 
+  mutate(ramen_image = ramen) %>% 
+  filter(country %in% most) %>% 
+  group_by(country, ramen_image, brand) %>% 
+  summarize(mean = mean(stars)) %>% 
+  select(country, brand, mean, ramen_image)
+```
+
+```{r}
+ggplot(best_df, aes(x = country, y = mean)) +
+  geom_jitter() + 
+  geom_image(aes(image = ramen2))
+  geom_boxplot(alpha = 0.3)
+```
+
+

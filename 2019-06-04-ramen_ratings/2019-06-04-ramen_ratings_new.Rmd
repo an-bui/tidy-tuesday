@@ -1,0 +1,81 @@
+---
+title: "Ramen ratings"
+author: "An Bui"
+date: "6/4/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries}
+library(tidyverse)
+library(ggimage)
+library(here)
+library(extrafont)
+```
+
+```{r data}
+ramen_ratings <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-06-04/ramen_ratings.csv")
+```
+
+```{r}
+#### which 10 countries produce the most ramen? ####
+most <- ramen_ratings %>% 
+  group_by(country) %>% 
+  tally() %>% 
+  arrange(-n) %>% 
+  head(5) %>% 
+  pull(country)
+
+#### which country produces the best ramen? ####
+best <- ramen_ratings %>% 
+  filter(country %in% most) %>% 
+  drop_na %>% 
+  group_by(country) %>% 
+  summarize(mean = mean(stars),
+            med = median(stars)) %>% 
+  arrange(-med)
+
+
+best_df <- ramen_ratings %>% 
+  drop_na() %>% 
+  filter(country %in% most) %>% 
+  group_by(country, brand) %>% 
+  summarize(mean = mean(stars)) %>% 
+  mutate(ramen_image = case_when(
+    country == "China" ~ "china-ramen.png", # Double Mountain Xiamen Instant Noodles Satay Flavor
+    country == "Japan" ~ "japan-ramen.png", # Seven & I Gold Sumire Ramen
+    country == "South Korea" ~ "sk-ramen.png", # Sempio Clam Flavor Soup Kal-guksu
+    country == "United States" ~ "us-ramen.png", # Sapporo Ichiban Momosan Ramen Tonkotsu
+    country == "Taiwan" ~ "taiwan-ramen.png" # Yi Lai Shuen Handmade Noodles With Spicy Chili Sauce
+  ))
+```
+
+```{r}
+ramenplot <- ggplot(best_df, aes(x = country, y = mean)) +
+  geom_image(aes(image = ramen_image), position = "jitter", size = 0.025, alpha = 0.5) +
+  geom_boxplot(aes(fill = country, color = country), alpha = 0.5, size = 1.5, width = 0.35) +
+  scale_fill_manual(values = c("#C4C0A6", "#BA552C", "#E0B622", "#876F34", "#6B8B44")) +
+  scale_color_manual(values = c("#C4C0A6", "#BA552C", "#E0B622", "#876F34", "#6B8B44")) +
+  labs(x = "Country",
+       y = "Mean rating",
+       title = "Mean ratings of ramen brands by The Ramen Rater",
+       subtitle = "Top five countries chosen by total mean rating",
+       caption = "Data from theramenrater.com") +
+  theme(plot.background = element_rect(fill = "#c49483"),
+        panel.background = element_rect(fill = "#ffd7c9"),
+        plot.margin = unit(c(1.5, 1.5, 1.5, 1.5), "cm"),
+        text = element_text(family = "Franklin Gothic Medium"),
+        axis.text = element_text(color = "#ffffff"),
+        plot.title = element_text(color = "#ad0505", size = 24),
+        plot.subtitle = element_text(color = "#720202", size = 16),
+        axis.title = element_text(color = "#ffffff", size = 14),
+        plot.caption = element_text(color = "#ffffff"),
+        legend.position = "none")
+ramenplot
+ggsave("ramenplot.jpg", ramenplot, dpi = 400)
+```
+
+
